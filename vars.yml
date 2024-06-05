@@ -1,0 +1,16 @@
+server_name: "{{ inventory_hostname }}"
+chatroom_name: "chatroom.dciformation.fr"
+ilias_version: release_7
+lms_mysql_host: localhost
+ilias_instance_name: Prod
+apache_dir: '/srv/www/lms'
+ilias_dir: '{{ apache_dir }}/ilias'
+iliasout_dir: '{{ apache_dir }}/data'
+lucene_dir: '{{ apache_dir }}/lucene'
+chat_dir: '{{ apache_dir }}/chatroom'
+log_dir: '{{ apache_dir }}/admin'
+timezone: 'Europe/Paris'
+dns_primary: 9.9.9.9
+dns_secondary: 149.112.112.112
+PHP_VERSION: "{{ '7.4' if ansible_distribution_major_version is version('11', '==') else '8.2' }}"
+JDK_VERSION: "{{ '11' if ansible_distribution_major_version is version('11', '==') else '17' }}"

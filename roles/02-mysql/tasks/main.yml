@@ -1,0 +1,115 @@
+- name: Installer MariaDB et les dépendances nécessaires
+  dnf:
+    name:
+      - mariadb-server
+      - mariadb
+      - python3
+      - python3-pip
+      - python3-PyMySQL
+    state: present
+
+- name: Vérifier si le répertoire /srv/mysql/ existe
+  stat:
+    path: /srv/mysql/
+  register: stat_mysql_dir_result
+
+- name: Copier le répertoire de travail de MariaDB
+  copy:
+    src: /var/lib/mysql/
+    dest: /srv/mysql/
+    remote_src: true
+    owner: mysql
+    group: mysql
+    mode: '0750'
+  when: not stat_mysql_dir_result.stat.exists
+
+- name: Arrêter le service MariaDB
+  systemd:
+    name: mariadb
+    state: stopped
+
+- name: Modifier le datadir
+  lineinfile:
+    dest: /etc/my.cnf.d/mariadb-server.cnf
+    regexp: '^datadir='
+    line: 'datadir=/srv/mysql/'
+
+- name: Déploiement optimisation SOCKET
+  template:
+    src: templates/90-socket-tuning.conf
+    dest: /etc/sysctl.d/90-socket-tuning.conf
+
+- name: Déploiement optimisation MariaDB
+  template:
+    src: templates/lms.cnf
+    dest: /etc/my.cnf.d/lms.cnf
+  notify: Relancer MariaDB
+
+- name: Démarrer le service MariaDB
+  systemd:
+    state: started
+    name: mariadb
+
+- name: Vérifier que le service MariaDB est démarré et activé
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Vérifier si le mot de passe root a déjà été modifié
+  mysql_user:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    name: root
+    priv: "*.*:USAGE"
+  check_mode: yes
+  register: password_test_result
+  ignore_errors: true
+
+- name: Si ce n'est pas le cas, modifier le mot de passe root
+  mysql_user:
+    name: root
+    password: "{{ mysql_root_password }}"
+    login_unix_socket: /var/lib/mysql/mysql.sock
+  when: password_test_result.failed
+
+- name: Supprimer les comptes anonymes et les bases de test
+  mysql_db:
+    name: test
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Supprimer tous les comptes anonymes
+  mysql_user:
+    name: ''
+    host: localhost
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Supprimer les accès root distants
+  mysql_user:
+    name: root
+    host: "%"
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: Créer la base de données
+  mysql_db:
+    name: '{{ lms_mysql_db }}'
+    state: present
+    login_user: root
+    login_password: '{{ mysql_root_password }}'
+    encoding: utf8
+  become: yes
+
+- name: Créer l'utilisateur
+  mysql_user:
+    name: '{{ lms_mysql_user }}'
+    password: '{{ mysql_lms_password }}'
+    priv: '{{ lms_mysql_db }}.*:ALL'
+    host: 'localhost'
+    login_user: root
+    login_password: '{{ mysql_root_password }}'

@@ -1,0 +1,50 @@
+---
+- name: Echo language
+  shell: "echo $LANG"
+  environment:
+    MY_ENV_VARIABLE: LC_CTYPE=en_US.UTF-8
+
+- name: Récupération du fichier ojdbc.jar
+  become: yes
+  become_user: apache
+  copy:
+    src: ojdbc14.jar
+    dest: '{{ lucene_dir }}'
+
+- name: Récupération du fichier orai18n.jar
+  become: yes
+  become_user: apache
+  copy:
+    src: orai18n.jar
+    dest: '{{ lucene_dir }}'
+
+- name: Fichier de configuration de IlServer
+  become: yes
+  become_user: apache
+  template:
+    src: templates/ilServer.properties.j2
+    dest: '{{ lucene_dir }}/ilServer.properties'
+
+- name: Fichier de service systemd pour IlServer
+  become: yes
+  template:
+    src: templates/ilserver.service.j2
+    dest: /etc/systemd/system/ilserver.service
+
+- name: Recharger les fichiers de service systemd
+  become: yes
+  command: systemctl daemon-reload
+
+- name: Activer et démarrer le service IlServer
+  become: yes
+  systemd:
+    name: ilserver
+    enabled: yes
+    state: started
+
+- name: Add ilserver start cron job
+  cron:
+    name: "ilserver start"
+    minute: "*/6"
+    user: root
+    job: "/usr/bin/systemctl start ilserver >/dev/null 2>&1"

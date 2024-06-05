@@ -1,0 +1,15 @@
+[Unit]
+Description=Lucene-ILIAS-Server (Java)
+After=network.target
+
+[Service]
+User=root
+Environment=JAVA_OPTS="-Dfile.encoding=UTF-8"
+Environment=ILSERVER_JAR="{{ ilias_dir }}/Services/WebServices/RPC/lib/ilServer.jar"
+Environment=ILSERVER_INI="{{ lucene_dir }}/ilServer.properties"
+ExecStart=/usr/bin/java $JAVA_OPTS -cp $ILSERVER_JAR de.ilias.ilServer $ILSERVER_INI start
+ExecStop=/usr/bin/pkill -f de.ilias.ilServer
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

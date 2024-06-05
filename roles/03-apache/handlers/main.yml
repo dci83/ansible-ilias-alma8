@@ -1,0 +1,5 @@
+---
+- name: relancer Apache
+  service:
+    name: httpd
+    state: restarted

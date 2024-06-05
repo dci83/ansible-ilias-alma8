@@ -1,0 +1,19 @@
+---
+- name: Install Ilias for Export Projects
+  hosts: ilias
+  gather_facts: true
+  remote_user: root
+  become: yes
+  # become_method: sudo
+
+  roles:
+    - 01-common_server
+    - 02-mysql
+    - 03-apache
+    - 04-ilias
+    - 05-lucene
+
+
+  vars_files:
+    - vaulted_vars.yml
+    - vars.yml

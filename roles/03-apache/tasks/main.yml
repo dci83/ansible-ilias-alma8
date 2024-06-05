@@ -1,0 +1,102 @@
+---
+- name: Activer le module stream de PHP
+  dnf:
+    name: '@php:8.0'
+    state: present
+
+- name: Installation des paquets pour Apache
+  dnf:
+    name:
+      - httpd
+      - httpd-manual
+      - httpd-tools
+      - https://download-ib01.fedoraproject.org/pub/epel/8/Everything/x86_64/Packages/m/mod_xsendfile-0.12-23.el8.x86_64.rpm
+      - memcached
+      - mod_ssl
+    state: latest
+    disable_gpg_check: yes
+
+
+- name: Installation des paquets PHP
+  dnf:
+    name:
+      - php
+      - php-cli
+      - php-common 
+      - php-fpm
+      - php-gd
+      - php-intl
+      - php-json
+      - php-mbstring
+      - php-mysqlnd
+      - php-opcache
+      - php-pdo
+      - php-xml
+      - php-pecl-zip
+      - php-soap
+    state: latest
+
+- name: Ouverture du port 443
+  firewalld:
+    service: https
+    permanent: yes
+    state: enabled
+
+- name: Ouverture du port 80
+  firewalld:
+    service: http
+    permanent: yes
+    state: enabled
+
+- name: reload service firewalld
+  systemd:
+    name: firewalld
+    state: reloaded
+
+- name: On ajoute les modules apache dans httpd.conf
+  lineinfile:
+    dest: /etc/httpd/conf/httpd.conf
+    insertbefore: EOF
+    line: "{{ item }}"
+  with_items: 
+    - LoadModule ssl_module modules/mod_ssl.so
+    - LoadModule headers_module modules/mod_headers.so 
+    - LoadModule speling_module modules/mod_speling.so
+    - LoadModule rewrite_module modules/mod_rewrite.so
+    - LoadModule xsendfile_module modules/mod_xsendfile.so
+
+- name: On securise Apache
+  blockinfile:
+    dest: /etc/httpd/conf/httpd.conf
+    block: |
+      # Configuration Apache Prod
+      ServerSignature Off
+      ServerTokens Prod
+      Timeout 40
+      ServerLimit 60
+
+      # On autorise le dossier /srv
+      <Directory "/srv">
+      AllowOverride None
+      Options Indexes FollowSymLinks
+      Require all granted
+      </Directory>
+  notify: relancer Apache
+
+- name: On securise PHP
+  lineinfile:
+    dest: /etc/php.ini
+    insertbefore: EOF
+    line: "expose_php = Off"
+  notify: relancer Apache
+
+- name: suppression virtualhost par defaut
+  template:
+    src: templates/welcome.conf
+    dest: /etc/httpd/conf.d/welcome.conf
+
+- name: Optimisation d'Apache
+  lineinfile:
+    dest: /etc/httpd/conf/httpd.conf 
+    insertbefore: EOF
+    line: "SetEnv APACHE_ULIMIT_MAX_FILES 'ulimit -n 128000'"

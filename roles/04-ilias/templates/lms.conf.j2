@@ -1,0 +1,35 @@
+#
+# Template Domain
+#
+#Listen 127.0.0.1:80
+
+<VirtualHost *:80>
+DocumentRoot {{ ilias_dir }}
+ServerName {{ domain }}
+HostNameLookups Off
+ErrorLog {{ apache_dir }}/admin/error.log
+CustomLog {{ apache_dir }}/admin/access_combined.log combined
+
+# Redirect permanent / https://{{ domain }}/
+
+<Directory {{ apache_dir }}>
+    AllowOverride All
+    Options -FollowSymLinks +SymLinksIfOwnerMatch
+</Directory>
+
+# Modules activés
+Header set X-UA-Compatible "IE=edge"
+CheckSpelling On
+
+
+XSendFilePath {{ apache_dir }}/
+XSendFilePath {{ apache_dir }}/data
+
+
+# La pool fpm d'activée:
+<FilesMatch \.php$>
+    SetHandler "proxy:unix:/run/php-fpm/lms.sock|fcgi://localhost/"
+</FilesMatch>
+
+
+</VirtualHost>

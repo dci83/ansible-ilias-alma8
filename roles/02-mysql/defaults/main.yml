@@ -1,0 +1,4 @@
+---
+lms_mysql_db: lms
+lms_mysql_user: lms
+lms_mysql_password: '{{ mysql_password }}'

@@ -1,0 +1,179 @@
+---
+- name: Installation des paquets optionnels
+  dnf:
+    name:
+      - ImageMagick
+      - ghostscript
+      - python3-lesscpy
+      - glibc
+      - fontconfig
+      # - ffmpeg
+      # - ffmpeg-devel
+      - java-11-openjdk
+      - clamav
+      - nodejs
+    state: latest
+
+- name: Vérifier si phantomjs est déjà installé
+  command: which phantomjs
+  register: phantomjs_installed
+  failed_when: false
+
+- name: Copie de phantomjs
+  copy:
+    src: phantomjs-2.1.1-linux-x86_64.tar.bz2
+    dest: /tmp/
+  when: phantomjs_installed.rc != 0
+
+- name: Decompresser PhantomJS 
+  unarchive:
+    src: /tmp/phantomjs-2.1.1-linux-x86_64.tar.bz2
+    dest: /tmp/
+    remote_src: yes
+  when: phantomjs_installed.rc != 0
+
+- name: Installation de phantomjs
+  copy:
+    src: /tmp/phantomjs-2.1.1-linux-x86_64/bin/phantomjs
+    dest: /usr/local/bin/
+    mode: 0755
+    remote_src: yes
+  when: phantomjs_installed.rc != 0
+    
+
+- name: Install "lessc" node.js package globally.
+  npm:
+    name: lessc
+    global: yes
+
+- name: Récupération de Composer
+  shell: curl -sS https://getcomposer.org/installer | php
+  args:
+    chdir: /usr/src/
+    creates: /usr/local/bin/composer
+
+- name: Mise en place de Composer
+  copy: 
+    dest: /usr/local/bin/composer
+    group: root
+    mode: '0755'
+    owner: root
+    src: /usr/src/composer.phar
+    remote_src: yes
+
+- name: Decompression phantomjs
+  unarchive:
+    src: https://e-campus.groupedci.com/phantomjs-2.1.1-linux-x86_64.tar.bz2
+    dest: /tmp/
+    remote_src: yes
+
+- name: Installation de phantomjs
+  copy:
+    src: /tmp/phantomjs-2.1.1-linux-x86_64/bin/phantomjs
+    dest: /usr/local/bin/
+    mode: 0755
+    remote_src: yes
+
+- name: Configuration Special pour Ilias
+  template:
+    src: templates/limit_nofile.conf
+    dest: /lib/systemd/system/httpd.service.d/limit_nofile.conf
+
+- name: Forcer le systeme à relire les confs
+  systemd:
+    daemon_reload: yes
+
+- name: Creation de l'arborescence Ilias
+  file: 
+    path: "{{ item }}" 
+    recurse: yes
+    state: directory
+    owner: apache
+    group: apache
+    mode: 0775
+  with_items: 
+    - '{{ apache_dir }}'
+    - '{{ ilias_dir }}'
+    - '{{ iliasout_dir }}'
+    - '{{ log_dir }}/apache'
+    - '{{ log_dir }}/errors'
+    - '{{ apache_dir }}/temp'
+    - '{{ lucene_dir }}'
+    - '{{ chat_dir }}/log'
+
+
+- name: Vérification si le dépôt Ilias est déjà cloné
+  stat:
+    path: '{{ ilias_dir }}/.git'
+  register: ilias_repo_exists
+
+- name: On clone Ilias Repo si vérification KO
+  become: yes
+  become_user: apache
+  environment:
+    ANSIBLE_REMOTE_TEMP: "/tmp/.ansible_tmp"
+  git:
+    repo: https://github.com/ILIAS-eLearning/ILIAS.git
+    dest: '{{ ilias_dir }}'
+    version: '{{ version_il }}'
+  when: not ilias_repo_exists.stat.exists
+
+- name: On pull Ilias Repo si vérification ok
+  become: yes
+  become_user: apache
+  environment:
+    ANSIBLE_REMOTE_TEMP: "/tmp/.ansible_tmp"
+  git:
+    repo: https://github.com/ILIAS-eLearning/ILIAS.git
+    dest: '{{ ilias_dir }}'
+    version: release_8
+    update: yes
+    force: yes
+  when: ilias_repo_exists.stat.exists
+
+- name: Creation arborescence Customizing
+  file: 
+    path: '{{ ilias_dir }}/Customizing/global/skin'
+    recurse: yes
+    state: directory
+    owner: apache
+    group: apache
+    mode: 0775
+
+- name: Push du virtualhost
+  template:
+    src: templates/{{ virtualhost_name }}.j2
+    dest: /etc/httpd/conf.d/{{ virtualhost_name }}
+
+- name: Push de la config de php_fpm
+  template:
+    src: templates/lms-php.conf.j2
+    dest: /etc/php-fpm.d/lms.conf
+
+- name: Deploy composer
+  become: yes
+  become_user: apache
+  composer:
+    command: install
+    working_dir: '{{ ilias_dir }}'
+    no_dev: yes
+
+
+- name: Déploiement fichier conf installation ilias
+  template:
+    src: templates/config.json.j2
+    dest: /srv/config.json
+
+  
+
+- name: Installation de la conf d'Ilias
+  become: yes
+  become_user: apache
+  command:  php '{{ ilias_dir }}'/setup/setup.php  install /srv/config.json --yes
+
+
+- name: Créer la tache cron
+  cron:
+    name: "Tâche cron pour exécuter cron.php"
+    minute: "*/60"
+    job: "/usr/bin/php '{{ ilias_dir }}'/cron/cron.php cron '{{ cron_password }}' Prod > '{{ apache_dir }}'/admin/cron.log"

@@ -1,0 +1,64 @@
+{
+    "common" : {
+        "client_id" : "{{ ilias_instance_name }}",
+        "server_timezone" : "Europe/Paris"
+    },
+    "database" : {
+        "type" : "innodb",
+        "database" : "{{ lms_mysql_db }}",
+        "user" : "{{ lms_mysql_user }}",
+        "password" : "{{ mysql_lms_password }}"
+    },
+    "filesystem" : {
+        "data_dir" : "{{ ilias_dir }}"
+    },
+    "http" : {
+        "path" : "http://{{domain}}"
+    },
+    "language" : {
+        "default_language" : "fr",
+        "install_languages" : ["fr"]
+    },
+    "logging" : {
+        "enable" : true,
+        "path_to_logfile" : "{{ apache_dir }}/admin/ilias.log",
+        "errorlog_dir" : "{{ apache_dir }}/admin/"
+    },
+    "systemfolder" : {
+        "contact" : {
+            "firstname" : "Ludovic",
+            "lastname" : "CATHELINEAU",
+            "email" : "dciformation@groupedci.com"
+        }
+    },
+    "mathjax" : {
+        "path_to_latex_cgi" : "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    },
+    "pdfgeneration" : {
+        "path_to_phantom_js" : "/usr/bin/phantomjs"
+    },
+    "preview" : {
+        "path_to_ghostscript" : "/usr/bin/gs"
+    },
+    "mediaobject" : {
+        "path_to_ffmpeg" : "/usr/bin/ffmpeg"
+    },
+    "style" : {
+        "manage_system_styles" : true,
+        "path_to_lessc" : "/usr/bin/lessc"
+    },
+    "virusscanner" : {
+        "virusscanner" : "clamav",
+        "path_to_scan" : "/usr/bin/clamdscan",
+        "path_to_clean" : "/usr/bin/clamdscan --remove=yes"
+    },
+    "utilities" : {
+        "path_to_convert" : "/usr/bin/convert",
+        "path_to_zip" : "/usr/bin/zip",
+        "path_to_unzip" : "/usr/bin/unzip"
+    },    
+    	"webservices" : {
+		"rpc_server_host" : "127.0.0.1",
+		"rpc_server_port" : "11111"
+	}
+}

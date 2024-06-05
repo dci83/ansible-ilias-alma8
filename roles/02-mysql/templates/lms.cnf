@@ -1,0 +1,18 @@
+[Service]
+LimitMEMLOCK=infinity
+LimitNOFILE=524288
+TimeoutStartSec=600
+ExecStartPre=/bin/sync
+ExecStartPre=/sbin/sysctl -q -w vm.drop_caches=3
+ 
+innodb_strict_mode=OFF
+log_error = /var/log/mysql/error.log
+slow_query_log_file    = /var/log/mysql/mariadb-slow.log
+long_query_time        = 0.5
+log_slow_rate_limit    = 1000
+log_slow_verbosity     = query_plan,explain
+default_storage_engine  = InnoDB
+sql_mode = ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+
+[mysqld]
+max_allowed_packet=1024M

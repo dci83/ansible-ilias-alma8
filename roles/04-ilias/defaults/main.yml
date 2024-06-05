@@ -1,0 +1,4 @@
+---
+version_il: '{{ ilias_version }}'
+virtualhost_name: 'lms.conf'
+domain: '{{ server_name }}'
