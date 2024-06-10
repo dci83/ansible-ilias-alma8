@@ -177,3 +177,30 @@
     name: "Tâche cron pour exécuter cron.php"
     minute: "*/60"
     job: "/usr/bin/php '{{ ilias_dir }}'/cron/cron.php cron '{{ cron_password }}' Prod > '{{ apache_dir }}'/admin/cron.log"
+
+
+- name: Vérifier si le dossier /srv/www/lms/ilas/Customizing/MathJax existe
+  stat:
+    path: /srv/www/lms/ilas/Customizing/MathJax
+  register: mathjax_directory
+
+- name: Copier MathJax3.2.2.zip dans /tmp
+  copy:
+    src: files/MathJax3.2.2.zip
+    dest: /tmp/MathJax3.2.2.zip
+  when: not mathjax_directory.stat.exists
+
+- name: Dézipper MathJax3.2.2.zip dans /srv/www/lms/ilas/Customizing/
+  unarchive:
+    src: /tmp/MathJax3.2.2.zip
+    dest: /srv/www/lms/ilas/Customizing/
+    remote_src: yes
+  when: not mathjax_directory.stat.exists
+
+- name: Changer les permissions du dossier MathJax
+  file:
+    path: /srv/www/lms/ilas/Customizing/MathJax
+    owner: www-data
+    group: www-data
+    recurse: yes
+  when: not mathjax_directory.stat.exists
