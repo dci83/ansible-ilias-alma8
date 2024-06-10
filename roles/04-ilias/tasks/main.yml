@@ -200,7 +200,7 @@
 - name: Changer les permissions du dossier MathJax
   file:
     path: /srv/www/lms/ilas/Customizing/MathJax
-    owner: www-data
-    group: www-data
+    owner: apache
+    group: apache
     recurse: yes
   when: not mathjax_directory.stat.exists
