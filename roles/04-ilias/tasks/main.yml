@@ -188,19 +188,19 @@
   copy:
     src: files/MathJax3.2.2.zip
     dest: /tmp/MathJax3.2.2.zip
-  when: not mathjax_directory.stat.exists
 
-- name: Dézipper MathJax3.2.2.zip dans /srv/www/lms/ilas/Customizing/
+
+- name: Dézipper MathJax3.2.2.zip dans /srv/www/lms/ilias/Customizing/
   unarchive:
     src: /tmp/MathJax3.2.2.zip
     dest: /srv/www/lms/ilas/Customizing/
     remote_src: yes
-  when: not mathjax_directory.stat.exists
+
 
 - name: Changer les permissions du dossier MathJax
   file:
-    path: /srv/www/lms/ilas/Customizing/MathJax
+    path: /srv/www/lms/ilias/Customizing/MathJax
     owner: apache
     group: apache
     recurse: yes
-  when: not mathjax_directory.stat.exists
+

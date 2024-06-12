@@ -10,7 +10,7 @@
       - httpd
       - httpd-manual
       - httpd-tools
-      - https://download-ib01.fedoraproject.org/pub/epel/8/Everything/x86_64/Packages/m/mod_xsendfile-0.12-23.el8.x86_64.rpm
+      - mod_xsendfile
       - memcached
       - mod_ssl
     state: latest
