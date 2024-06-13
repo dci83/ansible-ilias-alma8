@@ -12,6 +12,7 @@
     - 03-apache
     - 04-ilias
     - 05-lucene
+    - 06-plugins
 
 
   vars_files:
