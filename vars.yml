@@ -1,7 +1,7 @@
 server_name: "{{ inventory_hostname }}"
 chatroom_name: "chatroom.dciformation.fr"
 ilias_version: release_7
-lms_mysql_host: localhost
+mysql_lms_host: localhost
 ilias_instance_name: Prod
 apache_dir: '/srv/www/lms'
 ilias_dir: '{{ apache_dir }}/ilias'

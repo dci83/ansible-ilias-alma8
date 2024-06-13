@@ -98,7 +98,7 @@
 
 - name: Créer la base de données
   mysql_db:
-    name: '{{ lms_mysql_db }}'
+    name: '{{ mysql_lms_db }}'
     state: present
     login_user: root
     login_password: '{{ mysql_root_password }}'
@@ -107,9 +107,9 @@
 
 - name: Créer l'utilisateur
   mysql_user:
-    name: '{{ lms_mysql_user }}'
+    name: '{{ mysql_lms_user }}'
     password: '{{ mysql_lms_password }}'
-    priv: '{{ lms_mysql_db }}.*:ALL'
+    priv: '{{ mysql_lms_db }}.*:ALL'
     host: 'localhost'
     login_user: root
     login_password: '{{ mysql_root_password }}'

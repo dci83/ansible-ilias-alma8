@@ -1,0 +1,96 @@
+---
+- name: Créer la tache cron
+  cron:
+    name: "Tâche cron pour exécuter cron.php"
+    minute: "*/60"
+    job: "/usr/bin/php '{{ ilias_dir }}'/cron/cron.php cron '{{ cron_password }}' Prod > '{{ apache_dir }}'/admin/cron.log"
+
+- name: Créer l'utilisateur cron
+  community.mysql.mysql_query:
+    login_user: '{{ mysql_lms_user }}'
+    login_password: '{{ mysql_lms_password }}'
+    login_db: '{{ mysql_lms_db }}'
+    login_db: lms
+    query: |
+      INSERT INTO usr_data (
+      usr_id, login, passwd, firstname, lastname, title, gender, email, institution, street, city, zipcode, country, phone_office, last_login, last_update, create_date, hobby, department, phone_home, phone_mobile, fax, time_limit_owner, time_limit_unlimited, time_limit_from, time_limit_until, time_limit_message, referral_comment, matriculation, active, approve_date, agree_date, client_ip, auth_mode, profile_incomplete, ext_account, feed_hash, latitude, longitude, loc_zoom, login_attempts, last_password_change, reg_hash, birthday, sel_country, last_visited, inactivation_date, is_self_registered, passwd_enc_type, passwd_salt, second_email, first_login, last_profile_prompt, passwd_policy_reset
+      ) VALUES (
+      7, 'cron', '$2b$12$Rk/7KVKfTc9g9nSWPZ3gbe0TYjM6WtfQdLHPWxwFcLAe4YHgqHPLK', 'Cron', 'User', '', 'm', 'cron@test.fr', '', '', '', '', '', '', '2013-03-12 11:59:27', '2024-06-12 11:59:27', NULL, '', '', '', '', '', 7, 1, 1704067200, 1735689599, 0, '', '', 1, NULL, NULL, '', 'local', 0, NULL, '', NULL, NULL, 0, 0, 1718186118, '', NULL, '', NULL, NULL, 0, 'bcryptphp', NULL, '', '2016-12-21 13:55:17', NULL, 0
+      );
+
+- name: Créer l'objet cron
+  community.mysql.mysql_query:
+    login_user: '{{ mysql_lms_user }}'
+    login_password: '{{ mysql_lms_password }}'
+    login_db: '{{ mysql_lms_db }}'
+    login_db: lms
+    query: |
+      INSERT INTO rbac_ua (
+      usr_id, rol_id
+      ) VALUES (
+      7, 2  -- Assumons que 2 est le rôle par défaut des utilisateurs
+      );
+
+- name: Désactivation du changement de mdp
+  community.mysql.mysql_query:
+    login_user: '{{ mysql_lms_user }}'
+    login_password: '{{ mysql_lms_password }}'
+    login_db: '{{ mysql_lms_db }}'
+    login_db: lms
+    query: |
+      UPDATE settings 
+      SET value = '0' 
+      WHERE module = 'common' AND keyword = 'ps_password_change_on_first_login_enabled';
+
+- name: Copier MathJax3.2.2.zip dans /tmp
+  copy:
+    src: files/MathJax3.2.2.zip
+    dest: /tmp/MathJax3.2.2.zip
+
+- name: Dézipper MathJax3.2.2.zip dans /tmp
+  unarchive:
+    src: /tmp/MathJax3.2.2.zip
+    dest: /tmp/
+    remote_src: yes
+
+- name: Déplacer le contenu de MathJax dézippé vers le répertoire de destination
+  copy:
+    src: /tmp/MathJax-master/
+    dest: /srv/www/lms/ilias/Customizing/MathJax/
+    remote_src: yes
+    owner: www-data
+    group: www-data
+    mode: '0755'
+    force: yes
+
+- name: Changer les permissions du dossier MathJax
+  file:
+    path: /srv/www/lms/ilias/Customizing/MathJax
+    owner: www-data
+    group: www-data
+    recurse: yes
+
+
+- name: Activer le serveur MathJax dans la bdd de Ilias
+  community.mysql.mysql_query:
+    login_user: '{{ mysql_lms_user }}'
+    login_password: '{{ mysql_lms_password }}'
+    login_db: '{{ mysql_lms_db }}'
+    login_db: lms
+    query: |
+      UPDATE settings 
+      SET value = '1' 
+      WHERE module = 'MathJax' AND keyword = 'enable';
+
+- name: Mettre à jour le chemin de MathJax dans la base de données
+  community.mysql.mysql_query:
+    login_user: '{{ mysql_lms_user }}'
+    login_password: '{{ mysql_lms_password }}'
+    login_db: '{{ mysql_lms_db }}'
+    login_db: lms
+    query: |
+      UPDATE settings
+      SET value = './Customizing/MathJax/es5/tex-mml-chtml.js'
+      WHERE module = 'MathJax' AND keyword = 'path_to_mathjax';
+
+
