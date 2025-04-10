@@ -6,6 +6,7 @@
       - python3
       - python3-pip
       - python3-PyMySQL
+      - policycoreutils-python-utils
     state: present
 
 - name: Vérifier si le répertoire /srv/mysql/ existe
@@ -44,6 +45,21 @@
     src: templates/lms.cnf
     dest: /etc/my.cnf.d/lms.cnf
   notify: Relancer MariaDB
+
+- name: Vérifier le contexte SELinux actuel
+  shell: ls -dZ /srv/mysql | grep -q mysqld_db_t
+  register: selinux_context_check
+  ignore_errors: yes
+  changed_when: false
+  check_mode: no
+
+- name: Configurer SELinux pour le datadir
+  command: semanage fcontext -a -t mysqld_db_t "/srv/mysql(/.*)?"
+  when: selinux_context_check.rc != 0
+
+- name: Appliquer le contexte SELinux
+  command: restorecon -Rv /srv/mysql
+  when: selinux_context_check.rc != 0
 
 - name: Démarrer le service MariaDB
   systemd:

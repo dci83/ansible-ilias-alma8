@@ -1,5 +1,14 @@
 ---
 - name: relancer Apache
-  service:
+  systemd:
     name: httpd
     state: restarted
+
+- name: reload firewalld
+  systemd:
+    name: firewalld
+    state: reloaded
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes

@@ -12,11 +12,3 @@ timezone: 'Europe/Paris'
 dns_primary: 9.9.9.9
 dns_secondary: 149.112.112.112
 
-smtp_root: root@localhost
-smtp_server: votreserveurSMTP
-rewrite_domain: yourdomain.com
-hostname: localhost
-use_tls: YES
-use_starttls: YES
-smtp_auth_user: your_smtp_username
-smtp_auth_pass: your_smtp_password

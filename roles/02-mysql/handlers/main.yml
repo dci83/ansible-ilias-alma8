@@ -1,5 +1,5 @@
 ---
-- name: relancer MariaDB
+- name: Relancer MariaDB
   service:
     name: mysql
     state: restarted

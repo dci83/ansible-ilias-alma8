@@ -1,0 +1,27 @@
+---
+# handlers/main.yml pour le rôle letsencrypt
+
+- name: relancer Apache
+  systemd:
+    name: httpd
+    state: restarted
+
+- name: recharger Apache
+  systemd:
+    name: httpd
+    state: reloaded
+
+- name: redémarrer certbot
+  systemd:
+    name: certbot.timer
+    state: restarted
+    daemon_reload: yes
+
+- name: recharger le pare-feu
+  systemd:
+    name: firewalld
+    state: reloaded
+
+- name: recharger systemd
+  systemd:
+    daemon_reload: yes

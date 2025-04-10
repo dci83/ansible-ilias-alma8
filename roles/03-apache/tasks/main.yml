@@ -16,13 +16,12 @@
     state: latest
     disable_gpg_check: yes
 
-
 - name: Installation des paquets PHP
   dnf:
     name:
       - php
       - php-cli
-      - php-common 
+      - php-common
       - php-fpm
       - php-gd
       - php-intl
@@ -36,67 +35,97 @@
       - php-soap
     state: latest
 
-- name: Ouverture du port 443
+- name: Configuration du pare-feu pour les services HTTP et HTTPS
   firewalld:
-    service: https
+    service: "{{ item }}"
     permanent: yes
     state: enabled
+  loop:
+    - http
+    - https
+  notify: reload firewalld
 
-- name: Ouverture du port 80
-  firewalld:
-    service: http
-    permanent: yes
-    state: enabled
+- name: Configuration des modules Apache
+  copy:
+    dest: /etc/httpd/conf.modules.d/99-custom-modules.conf
+    content: |
+      # Modules chargés par Ansible
+      LoadModule ssl_module modules/mod_ssl.so
+      LoadModule headers_module modules/mod_headers.so
+      LoadModule speling_module modules/mod_speling.so
+      LoadModule rewrite_module modules/mod_rewrite.so
+      LoadModule xsendfile_module modules/mod_xsendfile.so
+    owner: root
+    group: root
+    mode: '0644'
+  notify: relancer Apache
 
-- name: reload service firewalld
-  systemd:
-    name: firewalld
-    state: reloaded
-
-- name: On ajoute les modules apache dans httpd.conf
-  lineinfile:
-    dest: /etc/httpd/conf/httpd.conf
-    insertbefore: EOF
-    line: "{{ item }}"
-  with_items: 
-    - LoadModule ssl_module modules/mod_ssl.so
-    - LoadModule headers_module modules/mod_headers.so 
-    - LoadModule speling_module modules/mod_speling.so
-    - LoadModule rewrite_module modules/mod_rewrite.so
-    - LoadModule xsendfile_module modules/mod_xsendfile.so
-
-- name: On securise Apache
-  blockinfile:
-    dest: /etc/httpd/conf/httpd.conf
-    block: |
-      # Configuration Apache Prod
+- name: Sécurisation d'Apache - paramètres globaux
+  copy:
+    dest: /etc/httpd/conf.d/00-security.conf
+    content: |
+      # Configuration de sécurité Apache - Géré par Ansible
       ServerSignature Off
       ServerTokens Prod
       Timeout 40
       ServerLimit 60
+    owner: root
+    group: root
+    mode: '0644'
+  notify: relancer Apache
 
-      # On autorise le dossier /srv
-      <Directory "/srv">
-      AllowOverride None
-      Options Indexes FollowSymLinks
-      Require all granted
+- name: Configuration du répertoire LMS spécifique
+  blockinfile:
+    path: /etc/httpd/conf.d/lms_directory.conf
+    create: yes
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - LMS DIRECTORY"
+    block: |
+      <Directory "{{ ilias_dir }}">
+        AllowOverride All
+        Options FollowSymLinks
+        Require all granted
       </Directory>
   notify: relancer Apache
 
 - name: On securise PHP
   lineinfile:
     dest: /etc/php.ini
-    insertbefore: EOF
+    regexp: '^expose_php\s*='
     line: "expose_php = Off"
   notify: relancer Apache
 
-- name: suppression virtualhost par defaut
+- name: Suppression virtualhost par defaut
   template:
     src: templates/welcome.conf
     dest: /etc/httpd/conf.d/welcome.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: relancer Apache
 
-- name: Optimisation d'Apache
-  lineinfile:
-    dest: /etc/httpd/conf/httpd.conf 
-    insertbefore: EOF
-    line: "SetEnv APACHE_ULIMIT_MAX_FILES 'ulimit -n 128000'"
+- name: Création du répertoire pour override systemd
+  file:
+    path: /etc/systemd/system/httpd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Optimisation d'Apache - limites de fichiers
+  copy:
+    dest: /etc/systemd/system/httpd.service.d/limits.conf
+    content: |
+      [Service]
+      LimitNOFILE=128000
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - reload systemd
+    - relancer Apache
+
+- name: Activation du service Apache
+  systemd:
+    name: httpd
+    state: started
+    enabled: yes

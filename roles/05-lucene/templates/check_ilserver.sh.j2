@@ -1,0 +1,37 @@
+#!/bin/bash
+# Script de vérification et redémarrage automatique pour ilServer
+# Pour AlmaLinux 8
+
+# Variables
+SERVICE_NAME="ilserver"
+LOG_FILE="/var/log/ilserver_monitoring.log"
+
+# Vérifier si le service est en cours d'exécution
+if ! systemctl is-active --quiet $SERVICE_NAME; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Le service $SERVICE_NAME n'est pas en cours d'exécution. Tentative de redémarrage..." >> $LOG_FILE
+    systemctl restart $SERVICE_NAME
+    
+    # Vérifier si le redémarrage a réussi
+    sleep 5
+    if systemctl is-active --quiet $SERVICE_NAME; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Le service $SERVICE_NAME a été redémarré avec succès." >> $LOG_FILE
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ERREUR: Échec du redémarrage du service $SERVICE_NAME." >> $LOG_FILE
+    fi
+fi
+
+# Vérifier également le processus Java
+if ! pgrep -f "de.ilias.ilServer" > /dev/null; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Le processus Java ilServer n'est pas détecté. Tentative de redémarrage du service..." >> $LOG_FILE
+    systemctl restart $SERVICE_NAME
+    
+    # Vérifier si le processus Java est maintenant en cours d'exécution
+    sleep 5
+    if pgrep -f "de.ilias.ilServer" > /dev/null; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Le processus Java ilServer a été redémarré avec succès." >> $LOG_FILE
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - ERREUR: Échec du redémarrage du processus Java ilServer." >> $LOG_FILE
+    fi
+fi
+
+exit 0

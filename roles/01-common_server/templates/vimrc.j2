@@ -1,0 +1,37 @@
+" Détection du type de fichier et activation de la coloration syntaxique
+filetype on
+syntax on
+
+" Thème et fond d'écran
+colorscheme {{ vim_colorscheme }}
+set background={{ vim_background }}
+
+" Gestion des indentations et des tabulations
+set shiftwidth={{ vim_indent }}  " Largeur d'indentation
+set softtabstop={{ vim_indent }}  " Largeur d'une tabulation en espace
+set expandtab  " Convertir les tabulations en espaces
+set autoindent  " Maintenir l'indentation des lignes précédentes
+set smartindent  " Indentation intelligente selon la syntaxe
+set smarttab  " Ajustement intelligent des tabulations
+
+" Amélioration de l'affichage et du comportement
+set hlsearch  " Surligner les résultats de recherche
+set wrapscan  " Reprendre la recherche depuis le début du fichier
+
+" Configuration de la sauvegarde et des fichiers temporaires
+set backup  " Activer la sauvegarde automatique
+set backupdir=~/.vim/backup//  " Répertoire de sauvegarde
+set directory=~/.vim/swap//  " Répertoire des fichiers temporaires
+set viewdir=~/.vim/view//  " Sauvegarde des vues de fichiers
+set sessionoptions+=globals,winpos,terminal  " Sauvegarde des fenêtres et terminaux ouverts
+
+" Historique et annulation
+set history={{ vim_history }}  " Nombre de commandes mémorisées
+set undolevels={{ vim_undo_levels }}  " Nombre de niveaux d'annulation
+
+" Encodage et gestion du presse-papier
+set encoding=utf-8  " Utilisation de l'encodage UTF-8
+set clipboard={{ vim_clipboard }}  " Synchronisation avec le presse-papier système
+
+" Configuration spécifique pour Ansible
+autocmd FileType yml,yaml setlocal ts={{ vim_indent }} sts={{ vim_indent }} sw={{ vim_indent }} expandtab et ai cuc

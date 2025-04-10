@@ -1,0 +1,78 @@
+# Rôle Ansible : IlServer pour AlmaLinux 8
+
+Ce rôle permet de déployer et configurer le serveur Lucene (IlServer) pour le LMS ILIAS sur AlmaLinux 8.
+
+## Prérequis
+
+- AlmaLinux 8 ou autre distribution basée sur RHEL 8
+- Ansible 2.9 ou plus récent
+- Une instance ILIAS déjà installée
+
+## Variables
+
+Les principales variables sont définies dans `defaults/main.yml` :
+
+```yaml
+# Chemins des répertoires
+apache_dir: /srv/www/lms
+ilias_dir: '{{ apache_dir }}/ilias'
+iliasout_dir: '{{ apache_dir }}/data'
+lucene_dir: '{{ apache_dir }}/lucene'
+chat_dir: '{{ apache_dir }}/chatroom'
+log_dir: '{{ apache_dir }}/admin'
+
+# Nom de l'instance ILIAS
+ilias_instance_name: ilias
+
+# Configuration du serveur Java
+java_min_memory: 256m
+java_max_memory: 512m
+
+# Port du serveur ilServer
+ilserver_port: 11111
+```
+
+## Structure du rôle
+
+```
+ilserver/
+├── defaults/
+│   └── main.yml           # Valeurs par défaut
+├── files/
+│   ├── ojdbc14.jar        # Fichiers JAR à déployer
+│   └── orai18n.jar
+├── handlers/
+│   └── main.yml           # Gestionnaires d'événements
+├── tasks/
+│   └── main.yml           # Tâches principales
+└── templates/
+    ├── ilServer.properties.j2  # Modèle de configuration
+    ├── ilserver.service.j2     # Modèle de service systemd
+    └── check_ilserver.sh.j2    # Script de surveillance
+```
+
+## Particularités pour AlmaLinux 8
+
+Ce rôle prend en compte les spécificités des systèmes basés sur RHEL comme AlmaLinux 8 :
+
+1. Utilisation du gestionnaire de paquets `dnf`
+2. Configuration de SELinux
+3. Configuration du pare-feu via `firewalld`
+4. Service systemd pour gérer le serveur Java
+5. Script de surveillance pour assurer la disponibilité du service
+
+## Utilisation
+
+Ajoutez ce rôle à votre playbook :
+
+```yaml
+- hosts: ilias_servers
+  roles:
+    - ilserver
+```
+
+## Notes importantes
+
+- Le service s'exécute en tant qu'utilisateur `apache` pour des raisons de sécurité
+- Un script de surveillance est configuré pour vérifier et redémarrer le service si nécessaire
+- Le service est configuré pour démarrer automatiquement au démarrage du système

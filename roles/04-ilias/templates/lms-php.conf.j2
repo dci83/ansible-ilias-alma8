@@ -12,10 +12,10 @@ pm.min_spare_servers = 5
 pm.max_spare_servers = 35
 
 
-php_admin_value[doc_root] = {{ apache_dir }}
+php_admin_value[doc_root] = {{ ilias_dir }}
 php_admin_value[upload_tmp_dir] = {{ apache_dir }}/temp
-php_admin_value[session.save_path] = {{ apache_dir }}/temp
-php_admin_value[max_execution_time] =  600
+php_admin_value[session.save_path] = {{ apache_dir }}/temp/session
+php_admin_value[max_execution_time] = 600
 php_admin_value[max_input_time] = 600
 php_value[upload_max_filesize] = 2500M
 php_value[post_max_size] = 2500M
@@ -25,7 +25,7 @@ php_value[session.cookie_secure] = on
 php_admin_value[max_input_vars] = 10000
 php_admin_value[error_reporting] = E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT
 php_admin_flag[log_errors] = on
-php_admin_value[error_log] =  {{ apache_dir }}/admin/php8_error.log
+php_admin_value[error_log] = {{ log_dir }}/php8_error.log
 
 ; Set the following data paths to directories owned by the FPM process user.
 ;
@@ -36,6 +36,6 @@ php_admin_value[error_log] =  {{ apache_dir }}/admin/php8_error.log
 ; See warning about choosing the location of these directories on your system
 ; at http://php.net/session.save-path
 php_value[session.save_handler] = files
-php_value[session.save_path]    = /var/lib/php/session
-php_value[soap.wsdl_cache_dir]  = /var/lib/php/wsdlcache
-;php_value[opcache.file_cache]  = /var/lib/php/opcache
+php_value[session.save_path] = {{ apache_dir }}/temp/session
+php_value[soap.wsdl_cache_dir] = {{ apache_dir }}/temp/wsdlcache
+;php_value[opcache.file_cache] = {{ apache_dir }}/temp/opcache

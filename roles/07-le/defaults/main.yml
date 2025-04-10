@@ -1,0 +1,4 @@
+---
+virtualhost_name: 'lms-ssl.conf'
+domain: '{{ server_name }}'
+

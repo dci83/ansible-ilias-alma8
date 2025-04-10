@@ -7,29 +7,27 @@
 DocumentRoot {{ ilias_dir }}
 ServerName {{ domain }}
 HostNameLookups Off
-ErrorLog {{ apache_dir }}/admin/error.log
-CustomLog {{ apache_dir }}/admin/access_combined.log combined
+ErrorLog {{ log_dir }}/apache/error.log
+CustomLog {{ log_dir }}/apache/access_combined.log combined
 
 # Redirect permanent / https://{{ domain }}/
 
-<Directory {{ apache_dir }}>
+<Directory {{ ilias_dir }}>
     AllowOverride All
     Options -FollowSymLinks +SymLinksIfOwnerMatch
+    Require all granted
 </Directory>
 
 # Modules activés
 Header set X-UA-Compatible "IE=edge"
 CheckSpelling On
 
-
-XSendFilePath {{ apache_dir }}/
-XSendFilePath {{ apache_dir }}/data
-
+XSendFilePath {{ iliasout_dir }}/
+XSendFilePath {{ ilias_dir }}/data
 
 # La pool fpm d'activée:
 <FilesMatch \.php$>
     SetHandler "proxy:unix:/run/php-fpm/lms.sock|fcgi://localhost/"
 </FilesMatch>
-
 
 </VirtualHost>

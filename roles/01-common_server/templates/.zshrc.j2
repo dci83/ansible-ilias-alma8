@@ -1,0 +1,38 @@
+# Configuration de Oh My Zsh
+export ZSH="{{ zsh_path }}"
+ZSH_THEME="{{ zsh_theme }}"
+
+# Correction automatique des fautes de frappe
+ENABLE_CORRECTION="{{ enable_correction }}"
+
+# Sensibilité de la complétion
+CASE_SENSITIVE="{{ case_sensitive }}"
+HYPHEN_INSENSITIVE="{{ hyphen_insensitive }}"
+
+# Configuration de l'historique
+HISTSIZE={{ hist_size }}
+SAVEHIST={{ save_hist }}
+setopt APPEND_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt SHARE_HISTORY
+setopt HIST_EXPIRE_DUPS_FIRST
+export HIST_STAMPS="{{ hist_stamps }}"
+export HISTFILE=~/.zsh_history
+
+# Plugins activés
+plugins=({{ zsh_plugins | join(' ') }})
+
+source $ZSH/oh-my-zsh.sh
+
+# Autocomplétion avancée
+autoload -Uz compinit
+compinit
+
+# Aliases globaux
+{% for alias, command in zsh_aliases.items() %}
+alias {{ alias }}="{{ command }}"
+{% endfor %}
+
+# Chargement d'une configuration utilisateur personnalisée
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local

@@ -1,4 +1,8 @@
 ---
+- name: Définition du fuseau horaire
+  timezone:
+    name: "{{ timezone }}"
+
 - name: dnf update/upgrade
   dnf:
     name: "*"
@@ -10,3 +14,144 @@
       - epel-release
     state: latest
     disable_gpg_check: yes
+
+- name: Installation des dépôts supplémentaires
+  dnf:
+    name:
+      - epel-release
+    state: present
+
+- name: Personnalisation du serveur
+  dnf:
+    name:
+      - cronie
+      - curl
+      - git
+      - vim-enhanced
+      - htop
+      - rsync
+      - tree
+      - unzip
+      - zip
+      - bzip2
+      - wget
+      - p7zip
+      - p7zip-plugins
+      - sysstat
+      - tmux
+      - zsh
+      - util-linux-user
+    state: present
+
+- name: Installation de packages supplémentaires via EPEL
+  dnf:
+    name:
+      - btop
+      - neofetch
+      - nload
+    state: present
+    enablerepo: epel
+
+- name: On définit zsh comme shell par défaut
+  become: yes
+  user:
+    name: root
+    shell: /bin/zsh
+
+- name: On vérifie l'existence d'un zsh.rc
+  stat:
+    path: /opt/zsh/oh-my-zsh
+  register: ohmyzsh_installed
+
+- name: On clone oh-my-zsh
+  git:
+    repo: https://github.com/robbyrussell/oh-my-zsh.git
+    dest: /opt/zsh/oh-my-zsh
+    force: yes
+  when: not ohmyzsh_installed.stat.exists
+
+- name: On clone les autosuggestions
+  git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions.git
+    dest: /opt/zsh/oh-my-zsh/plugins/zsh-autosuggestions
+
+
+- name: Obtenir la liste des utilisateurs avec droits sudo
+  shell: grep -l "ALL=(ALL)" /etc/sudoers.d/* | xargs grep -l "ALL" | xargs basename 2>/dev/null || echo ""
+  register: sudo_files_result
+  changed_when: false
+  check_mode: no
+
+- name: Extraire les noms d'utilisateurs des fichiers sudoers
+  set_fact:
+    sudo_users: "{{ sudo_files_result.stdout_lines }}"
+  when: sudo_files_result.stdout_lines is defined
+
+- name: Ajouter des utilisateurs spécifiques à la liste
+  set_fact:
+    zsh_users: "{{ sudo_users | default([]) + ['root', 'azureuser'] | unique }}"
+
+- name: Définir ZSH comme shell par défaut pour les utilisateurs appropriés
+  user:
+    name: "{{ item }}"
+    shell: /bin/zsh
+  loop: "{{ zsh_users }}"
+  when: zsh_users is defined
+
+# Ajout des tâches pour copier le fichier .zshrc
+- name: Récupérer les informations des utilisateurs
+  getent:
+    database: passwd
+    key: "{{ item }}"
+  loop: "{{ zsh_users }}"
+  register: user_info
+  when: zsh_users is defined
+  ignore_errors: yes
+
+- name: Simplifier le résultat de getent pour utilisation ultérieure
+  set_fact:
+    user_homes: "{{ user_homes | default({}) | combine({item.item: item.ansible_facts.getent_passwd[item.item][4]}) }}"
+  loop: "{{ user_info.results }}"
+  when: 
+    - item is defined 
+    - item.ansible_facts is defined
+    - item.ansible_facts.getent_passwd is defined
+    - item.item in item.ansible_facts.getent_passwd
+
+- name: Copier le fichier .zshrc pour chaque utilisateur
+  template:
+    src: templates/.zshrc.j2
+    dest: "{{ user_homes[item] }}/.zshrc"
+    mode: 0644
+    owner: "{{ item }}"
+    group: "{{ item }}"
+  loop: "{{ user_homes.keys() | list }}"
+  when: user_homes is defined
+
+- name: On copie le nouveau vimrc
+  copy:
+    src: templates/vimrc.j2
+    dest: "{{ vimrc }}"
+    backup: yes
+    mode: 0640
+
+- name: Création de l'arborescence de backup pour vim
+  file:
+    path: '{{ item }}'
+    recurse: yes
+    state: directory
+    mode: 0775
+  with_items:
+    - '/root/.cache/vim/backup'
+
+- name: On active le service firewalld
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: On s'assure que sysstat est activé
+  systemd:
+    name: sysstat
+    state: started
+    enabled: yes

@@ -1,0 +1,31 @@
+zsh_path: "/opt/zsh/oh-my-zsh"
+zsh_theme: "agnoster"
+enable_correction: "true"
+case_sensitive: "false"
+hyphen_insensitive: "true"
+hist_size: 10000
+save_hist: 10000
+hist_stamps: "yyyy-mm-dd"
+zsh_plugins:
+  - git
+  - ansible
+  - zsh-autosuggestions
+  - colored-man-pages
+  - cp
+  - sudo
+zsh_aliases:
+  ll: "ls -alF"
+  la: "ls -a"
+  l: "ls -lh"
+  grep: "grep --color=auto"
+  df: "df -h"
+  free: "free -m"
+vim_colorscheme: "desert"
+vim_background: "dark"
+vim_indent: 2
+vim_history: 8000
+vim_undo_levels: 150
+vim_clipboard: "unnamedplus"
+nano_tabsize: 4
+
+timezone: 'Europe/Paris'

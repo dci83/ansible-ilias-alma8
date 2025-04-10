@@ -1,3 +1,11 @@
 {
-    "ansible.python.interpreterPath": "/bin/python3"
+    "ansible.python.interpreterPath": "/bin/python3",
+    "cSpell.language": "en,lorem",
+    "cSpell.enableFiletypes": [
+        "ansible",
+        "ansible-jinja",
+        "dockercompose",
+        "dockerfile",
+        "git-rebase"
+    ]
 }

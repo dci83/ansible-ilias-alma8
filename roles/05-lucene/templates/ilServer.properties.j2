@@ -2,7 +2,7 @@
 IpAddress = 127.0.0.1
 Port = 11111
 IndexPath = {{ lucene_dir }}
-LogFile = {{apache_dir}}/admin/lucene
+LogFile = {{ log_dir }}/lucene
 LogLevel = WARN
 NumThreads = 4
 RamBufferSize = 256
@@ -11,5 +11,5 @@ maxClauseCount = 10000
  
 [Client1]
 ClientId = {{ ilias_instance_name }}
-NicId = 
+NicId =
 IliasIniPath = {{ ilias_dir }}/ilias.ini.php

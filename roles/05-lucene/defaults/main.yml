@@ -1,2 +1,6 @@
----
-lucene_dir: '/srv/www/lms/lucene'
+# Configuration du serveur Java
+java_min_memory: 256m
+java_max_memory: 512m
+
+# Port du serveur ilServer
+ilserver_port: 11111

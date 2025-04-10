@@ -1,15 +1,36 @@
 ---
+# Création des répertoires nécessaires
+- name: Création des répertoires nécessaires
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: apache
+    group: apache
+    mode: '0755'
+  with_items:
+    - "{{ lucene_dir }}"
+    - "{{ log_dir }}/lucene"
+
+# Vérification de l'environnement
 - name: Echo language
   shell: "echo $LANG"
   environment:
     MY_ENV_VARIABLE: LC_CTYPE=en_US.UTF-8
+  register: lang_output
 
+- name: Affichage de la configuration de langue
+  debug:
+    var: lang_output.stdout
+
+# Récupération des fichiers JAR nécessaires
 - name: Récupération du fichier ojdbc.jar
   become: yes
   become_user: apache
   copy:
     src: ojdbc14.jar
     dest: '{{ lucene_dir }}'
+    mode: '0644'
 
 - name: Récupération du fichier orai18n.jar
   become: yes
@@ -17,23 +38,30 @@
   copy:
     src: orai18n.jar
     dest: '{{ lucene_dir }}'
+    mode: '0644'
 
+# Configuration
 - name: Fichier de configuration de IlServer
   become: yes
   become_user: apache
   template:
     src: templates/ilServer.properties.j2
     dest: '{{ lucene_dir }}/ilServer.properties'
+    mode: '0644'
 
+# Configuration du service systemd
 - name: Fichier de service systemd pour IlServer
   become: yes
   template:
     src: templates/ilserver.service.j2
     dest: /etc/systemd/system/ilserver.service
+    mode: '0644'
 
+# Gestion du service
 - name: Recharger les fichiers de service systemd
   become: yes
-  command: systemctl daemon-reload
+  systemd:
+    daemon_reload: yes
 
 - name: Activer et démarrer le service IlServer
   become: yes
@@ -42,9 +70,27 @@
     enabled: yes
     state: started
 
-- name: Add ilserver start cron job
-  cron:
-    name: "ilserver start"
-    minute: "*/6"
-    user: root
-    job: "/usr/bin/systemctl start ilserver >/dev/null 2>&1"
+# Configuration SELinux (spécifique aux systèmes RHEL)
+- name: Configurer SELinux pour IlServer
+  become: yes
+  seboolean:
+    name: httpd_can_network_connect
+    state: yes
+    persistent: yes
+
+# Configuration du pare-feu
+- name: Configurer le pare-feu pour IlServer
+  become: yes
+  firewalld:
+    port: 11111/tcp
+    permanent: yes
+    state: enabled
+  notify: reload firewalld
+
+# Surveillance du service (alternative à la tâche cron)
+- name: Configurer le surveillance du service
+  become: yes
+  template:
+    src: templates/check_ilserver.sh.j2
+    dest: /usr/local/bin/check_ilserver.sh
+    mode: '0755'

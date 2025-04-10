@@ -4,103 +4,109 @@
     name:
       - ImageMagick
       - ghostscript
-      - python3-lesscpy
       - glibc
       - fontconfig
-      # - ffmpeg
+      # - ffmpeg  # Commenté, à activer si nécessaire
       # - ffmpeg-devel
       - java-11-openjdk
       - clamav
       - nodejs
     state: latest
 
+# PhantomJS - Installation unifiée
 - name: Vérifier si phantomjs est déjà installé
   command: which phantomjs
   register: phantomjs_installed
+  changed_when: false
   failed_when: false
 
-- name: Copie de phantomjs
-  copy:
-    src: phantomjs-2.1.1-linux-x86_64.tar.bz2
-    dest: /tmp/
-  when: phantomjs_installed.rc != 0
+- name: Téléchargement et installation de phantomjs (si non installé)
+  block:
+    - name: Téléchargement de phantomjs
+      get_url:
+        url: https://e-campus.groupedci.com/phantomjs-2.1.1-linux-x86_64.tar.bz2
+        dest: /tmp/phantomjs-2.1.1-linux-x86_64.tar.bz2
+        mode: '0644'
+      register: phantomjs_download
+      when: phantomjs_installed.rc != 0
 
-- name: Decompresser PhantomJS 
-  unarchive:
-    src: /tmp/phantomjs-2.1.1-linux-x86_64.tar.bz2
-    dest: /tmp/
-    remote_src: yes
-  when: phantomjs_installed.rc != 0
+    - name: Extraction de phantomjs
+      unarchive:
+        src: /tmp/phantomjs-2.1.1-linux-x86_64.tar.bz2
+        dest: /tmp/
+        remote_src: yes
+      when: phantomjs_installed.rc != 0
 
-- name: Installation de phantomjs
-  copy:
-    src: /tmp/phantomjs-2.1.1-linux-x86_64/bin/phantomjs
-    dest: /usr/local/bin/
-    mode: 0755
-    remote_src: yes
-  when: phantomjs_installed.rc != 0
-    
+    - name: Installation de phantomjs
+      copy:
+        src: /tmp/phantomjs-2.1.1-linux-x86_64/bin/phantomjs
+        dest: /usr/local/bin/
+        mode: 0755
+        remote_src: yes
+      when: phantomjs_installed.rc != 0
 
-- name: Install "lessc" node.js package globally.
+- name: Installation de "lessc" via npm
   npm:
-    name: lessc
+    name: less
     global: yes
 
-- name: Récupération de Composer
-  shell: curl -sS https://getcomposer.org/installer | php
-  args:
-    chdir: /usr/src/
-    creates: /usr/local/bin/composer
+- name: Installation de Composer
+  block:
+    - name: Récupération de Composer
+      shell: curl -sS https://getcomposer.org/installer | php
+      args:
+        chdir: /usr/src/
+        creates: /usr/src/composer.phar
 
-- name: Mise en place de Composer
-  copy: 
-    dest: /usr/local/bin/composer
-    group: root
-    mode: '0755'
-    owner: root
-    src: /usr/src/composer.phar
-    remote_src: yes
+    - name: Mise en place de Composer
+      copy:
+        dest: /usr/local/bin/composer
+        group: root
+        mode: '0755'
+        owner: root
+        src: /usr/src/composer.phar
+        remote_src: yes
 
-- name: Decompression phantomjs
-  unarchive:
-    src: https://e-campus.groupedci.com/phantomjs-2.1.1-linux-x86_64.tar.bz2
-    dest: /tmp/
-    remote_src: yes
+- name: Configuration des limites de fichiers pour Apache
+  block:
+    - name: Création du répertoire pour override systemd
+      file:
+        path: /etc/systemd/system/httpd.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
 
-- name: Installation de phantomjs
-  copy:
-    src: /tmp/phantomjs-2.1.1-linux-x86_64/bin/phantomjs
-    dest: /usr/local/bin/
-    mode: 0755
-    remote_src: yes
+    - name: Configuration des limites de fichiers pour Apache
+      template:
+        src: templates/limit_nofile.conf
+        dest: /etc/systemd/system/httpd.service.d/limit_nofile.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: reload systemd
 
-- name: Configuration Special pour Ilias
-  template:
-    src: templates/limit_nofile.conf
-    dest: /lib/systemd/system/httpd.service.d/limit_nofile.conf
-
-- name: Forcer le systeme à relire les confs
-  systemd:
-    daemon_reload: yes
-
-- name: Creation de l'arborescence Ilias
-  file: 
-    path: "{{ item }}" 
+- name: Création de l'arborescence ILIAS
+  file:
+    path: "{{ item }}"
     recurse: yes
     state: directory
     owner: apache
     group: apache
     mode: 0775
-  with_items: 
+  with_items:
     - '{{ apache_dir }}'
     - '{{ ilias_dir }}'
     - '{{ iliasout_dir }}'
+    - '{{ log_dir }}'
     - '{{ log_dir }}/apache'
     - '{{ log_dir }}/errors'
     - '{{ apache_dir }}/temp'
+    - '{{ apache_dir }}/temp/session'
+    - '{{ apache_dir }}/temp/wsdlcache'
     - '{{ lucene_dir }}'
     - '{{ chat_dir }}/log'
-
+    - "{{ apache_dir }}/admin/lucene"
 
 - name: Vérification si le dépôt Ilias est déjà cloné
   stat:
@@ -126,13 +132,13 @@
   git:
     repo: https://github.com/ILIAS-eLearning/ILIAS.git
     dest: '{{ ilias_dir }}'
-    version: release_8
+    version: '{{ version_il }}'
     update: yes
     force: yes
   when: ilias_repo_exists.stat.exists
 
 - name: Creation arborescence Customizing
-  file: 
+  file:
     path: '{{ ilias_dir }}/Customizing/global/skin'
     recurse: yes
     state: directory
@@ -144,11 +150,48 @@
   template:
     src: templates/{{ virtualhost_name }}.j2
     dest: /etc/httpd/conf.d/{{ virtualhost_name }}
+    owner: root
+    group: root
+    mode: '0644'
+  notify: relancer Apache
 
 - name: Push de la config de php_fpm
   template:
     src: templates/lms-php.conf.j2
     dest: /etc/php-fpm.d/lms.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart php-fpm
+
+- name: Vérifier que le virtualhost est correctement configuré
+  stat:
+    path: /etc/httpd/conf.d/{{ virtualhost_name }}
+  register: vhost_file
+
+- name: S'assurer que le virtualhost est activé (fichier non commenté)
+  lineinfile:
+    path: /etc/httpd/conf.d/{{ virtualhost_name }}
+    regexp: '^#<VirtualHost'
+    line: '<VirtualHost *:80>'
+    state: present
+  when: vhost_file.stat.exists
+  notify: relancer Apache
+
+- name: Activation du service PHP-FPM
+  systemd:
+    name: php-fpm
+    state: started
+    enabled: yes
+
+- name: Vérification de la syntaxe de la configuration Apache
+  command: apachectl configtest
+  register: apache_config_test
+  changed_when: false
+  failed_when: 
+    - apache_config_test.rc != 0
+    - "'AH00014: Configuration check failed' in apache_config_test.stderr"
+  notify: relancer Apache
 
 - name: Deploy composer
   become: yes
@@ -158,17 +201,60 @@
     working_dir: '{{ ilias_dir }}'
     no_dev: yes
 
-
 - name: Déploiement fichier conf installation ilias
   template:
     src: templates/config.json.j2
     dest: /srv/config.json
-
-  
-
+    owner: apache
+    group: apache
+    mode: '0644'
+ 
 - name: Installation de la conf d'Ilias
   become: yes
   become_user: apache
-  command:  php '{{ ilias_dir }}'/setup/setup.php  install /srv/config.json --yes
+  command: php '{{ ilias_dir }}'/setup/setup.php install /srv/config.json --yes
+  args:
+    creates: '{{ ilias_dir }}/data/ilias.ini.php'
 
+- name: Configurer les contextes SELinux pour les répertoires web
+  block:
+    - name: Définir le contexte SELinux pour le répertoire racine
+      command: semanage fcontext -a -t httpd_sys_content_t "/srv/www/lms(/.*)?"
+      register: selinux_root
+      failed_when: selinux_root.rc != 0 and "already exists" not in selinux_root.stderr
+      changed_when: selinux_root.rc == 0
 
+    - name: Configurer le contexte SELinux pour les répertoires de logs
+      command: semanage fcontext -a -t httpd_log_t "/srv/www/lms/admin/apache(/.*)?"
+      register: selinux_logs
+      failed_when: selinux_logs.rc != 0 and "already exists" not in selinux_logs.stderr
+      changed_when: selinux_logs.rc == 0
+
+    - name: Définir le contexte SELinux pour les répertoires qui nécessitent un accès en écriture
+      command: semanage fcontext -a -t httpd_sys_rw_content_t "{{ item }}(/.*)?"
+      loop:
+        - "{{ apache_dir }}/data"
+        - "{{ apache_dir }}/admin"
+        - "{{ apache_dir }}/temp"
+        - "{{ apache_dir }}/lucene"
+        - "{{ apache_dir }}/chatroom"
+      register: selinux_writable
+      failed_when: selinux_writable.rc != 0 and "already exists" not in selinux_writable.stderr
+      changed_when: selinux_writable.rc == 0
+
+    - name: Appliquer les contextes SELinux
+      command: restorecon -Rv /srv/www/lms
+      register: selinux_restore
+      changed_when: "'Relabeled' in selinux_restore.stdout"
+
+- name: Configurer les booléens SELinux pour Apache
+  seboolean:
+    name: "{{ item }}"
+    state: yes
+    persistent: yes
+  loop:
+    - httpd_can_network_connect
+    - httpd_can_network_connect_db
+    - httpd_unified
+    - httpd_enable_homedirs
+    - httpd_read_user_content

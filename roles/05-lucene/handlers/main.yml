@@ -1,0 +1,17 @@
+---
+# Handlers pour le rôle ilserver
+
+- name: reload systemd
+  become: yes
+  systemd:
+    daemon_reload: yes
+
+- name: reload firewalld
+  become: yes
+  command: firewall-cmd --reload
+
+- name: restart ilserver
+  become: yes
+  systemd:
+    name: ilserver
+    state: restarted
