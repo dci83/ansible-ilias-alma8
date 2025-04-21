@@ -94,10 +94,22 @@
     line: "expose_php = Off"
   notify: relancer Apache
 
-- name: Suppression virtualhost par defaut
-  template:
-    src: templates/welcome.conf
+- name: Désactivation du virtualhost par défaut (welcome.conf)
+  copy:
     dest: /etc/httpd/conf.d/welcome.conf
+    content: |
+      # Désactivé par Ansible - Remplacé par configuration ILIAS
+      # Le contenu original a été commenté pour éviter les conflits
+      #
+      # <LocationMatch "^/+$">
+      #    Options -Indexes
+      #    ErrorDocument 403 /.noindex.html
+      # </LocationMatch>
+      #
+      # <Directory /usr/share/httpd/noindex>
+      #    AllowOverride None
+      #    Require all granted
+      # </Directory>
     owner: root
     group: root
     mode: '0644'

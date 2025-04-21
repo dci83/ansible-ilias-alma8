@@ -1,6 +1,6 @@
 ilias:
   hosts:
-    eformdev.dcilabs.fr:
+    eform-demo.dcilabs.fr:
 
 
   vars:

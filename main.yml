@@ -5,12 +5,12 @@
 
 
   roles:
-    # - 01-common_server
-    # - 02-mysql
-    # - 03-apache
-    # - 04-ilias
-    # - 05-lucene
-    # - 06-plugins
+    - 01-common_server
+    - 02-mysql
+    - 03-apache
+    - 04-ilias
+    - 05-lucene
+    - 06-plugins
     - 07-le
 
 
