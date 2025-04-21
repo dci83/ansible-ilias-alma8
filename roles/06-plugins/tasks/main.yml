@@ -74,8 +74,8 @@
     src: /tmp/MathJax-master/
     dest: /srv/www/lms/ilias/Customizing/MathJax/
     remote_src: yes
-    owner: www-data
-    group: www-data
+    owner: apache
+    group: apache
     mode: '0755'
     force: yes
 

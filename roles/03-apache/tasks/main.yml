@@ -35,16 +35,6 @@
       - php-soap
     state: latest
 
-- name: Configuration du pare-feu pour les services HTTP et HTTPS
-  firewalld:
-    service: "{{ item }}"
-    permanent: yes
-    state: enabled
-  loop:
-    - http
-    - https
-  notify: reload firewalld
-
 - name: Configuration des modules Apache
   copy:
     dest: /etc/httpd/conf.modules.d/99-custom-modules.conf
@@ -141,3 +131,25 @@
     name: httpd
     state: started
     enabled: yes
+
+- name: Configuration du pare-feu pour les services HTTP et HTTPS
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  loop:
+    - http
+    - https
+  notify: reload firewalld
+
+- name: Vérification que les services HTTP et HTTPS sont bien activés dans le pare-feu
+  command: firewall-cmd --list-services
+  register: firewall_services
+  changed_when: false
+  check_mode: no
+
+- name: Affichage des services activés dans le pare-feu
+  debug:
+    msg: "Services activés dans le pare-feu : {{ firewall_services.stdout }}"
+  when: firewall_services.stdout is defined

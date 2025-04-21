@@ -6,8 +6,7 @@
       - ghostscript
       - glibc
       - fontconfig
-      # - ffmpeg  # Commenté, à activer si nécessaire
-      # - ffmpeg-devel
+
       - java-11-openjdk
       - clamav
       - nodejs
