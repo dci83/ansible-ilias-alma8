@@ -73,6 +73,13 @@
     mode: '0644'
   notify: relancer Apache
 
+- name: Activer la redirection HTTP vers HTTPS
+  replace:
+    path: "/etc/httpd/conf.d/lms.conf"
+    regexp: '^# Redirect permanent / https://{{ domain }}/$'
+    replace: 'Redirect permanent / https://{{ domain }}/'
+  notify: relancer Apache
+
 - name: Démarrage du service Apache
   systemd:
     name: httpd
